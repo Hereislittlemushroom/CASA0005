@@ -52,22 +52,25 @@ tip: you can use the APOCA method (authority/purpose/objectivity/currency/accura
 
 ### Read data into R
 
+And then, I need a map of London borough
+```{r}
+library(sf)
+London_Borough = st_read("/Users/fangzeqiang/Desktop/SDSV/Final/CASA0005_Final_Assessment/Dataset/statistical-gis-boundaries-london/ESRI/London_Borough_Excluding_MHW.shp")
+# .shp should be loaded in ESRI folder and path instead of relative path!
+plot(st_geometry(London_Borough))
+```
 The NCR is a database of publicly-available chargepoints for electric vehicles in the UK established in 2011(,2021).
 
 you can access data in this
 [link](https://www.gov.uk/guidance/find-and-use-data-on-public-electric-vehicle-chargepoints#accessing-data-on-ncv)
 ```{r}
-library()
-chargepoints = read_csv("Dataset/national-charge-point-registry.csv")
-chargepoints
+library(tidyverse)
+charge_points = read_csv("Dataset/national-charge-point-registry.csv")
+summary(charge_points)
 ```
-
-And then, I need a map of London borough
 ```{r}
-library(sf)
-shape <- st_read("London_Borough_Excluding_MHW.sh")
+charge_points
 ```
-
 
 ### Data preprocessing
 
