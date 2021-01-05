@@ -15,7 +15,8 @@ output:
   Title: ...
   CASA0005 Geographic Information Systems and Science
   The Bartlett Centre for Advanced Spatial Analysis
-  Github repository URL and online website RPubs
+  Github repository URL: https://github.com/Hereislittlemushroom/CASA0005_Final_Assessment
+  Online website RPubs: https://zeqiang.fun/
 
 ## Instruction
 
@@ -26,6 +27,12 @@ we can actually set up a topic such as
 ## Literature Review
 
 ## Methodology
+
+### Data Source
+
+### Data Limitation
+
+tip: you can use the APOCA method (authority/purpose/objectivity/currency/accuracy)
 
 ## Results
 
@@ -40,3 +47,33 @@ we can actually set up a topic such as
 ## Conclusion
 
 ## References
+
+## Reproducible analysis
+
+### Read data into R
+
+The NCR is a database of publicly-available chargepoints for electric vehicles in the UK established in 2011(,2021).
+
+you can access data in this
+[link](https://www.gov.uk/guidance/find-and-use-data-on-public-electric-vehicle-chargepoints#accessing-data-on-ncv)
+```{r}
+library()
+chargepoints = read_csv("Dataset/national-charge-point-registry.csv")
+chargepoints
+```
+
+And then, I need a map of London borough
+```{r}
+library(sf)
+shape <- st_read("London_Borough_Excluding_MHW.sh")
+```
+
+
+### Data preprocessing
+
+### Analysis
+
+- weighted 
+- 
+
+### 
