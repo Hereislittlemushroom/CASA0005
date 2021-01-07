@@ -47,7 +47,10 @@ How can I find the relationship between EV charging location and another factor?
 
 # Data Source
 
-![Data Source](DataSource.png)（mentioned in wk1 CASA0005 lecture）
+- ![Data Source](DataSource.png)（mentioned in wk1 CASA0005 lecture）
 
 - [PlanB: New York City Airbnb Open Data](https://www.kaggle.com/dgomonov/new-york-city-airbnb-open-data/metadata)
 
+- R dplyr cheatsheet:
+    
+    ![dplyr diagram](https://andrewmaclachlan.github.io/CASA0005repo/prac2_images/dplyr.svg)
