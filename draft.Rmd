@@ -12,7 +12,7 @@ output:
 
 ## Coversheet
 
-  Title: ...
+  Title: The analysis of EV charging in London, UK
   CASA0005 Geographic Information Systems and Science
   The Bartlett Centre for Advanced Spatial Analysis
   Github repository URL: https://github.com/Hereislittlemushroom/CASA0005_Final_Assessment
@@ -20,32 +20,34 @@ output:
 
 ## Instruction
 
-we can actually set up a topic such as 
+we can actually set up a topic such as ...
 
 ## Research Question
+
+is there any relationship between ... and ...
 
 ## Literature Review
 
 ## Methodology
 
-### Data Source
+  ### Data Source
 
-### Data Limitation
+  ### Data Limitation
 
 tip: you can use the APOCA method (authority/purpose/objectivity/currency/accuracy)
 
 ## Results
 
-### Descriptive statistics
+  ### Descriptive statistics
 
-### Further analysis
+  ### Further analysis
 
 ## Discussion
 
-### Recommendations
+  ### Recommendations
 
 ## Conclusion
 
 ## References
 
-## Reproducible analysis
+
