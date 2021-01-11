@@ -75,9 +75,28 @@ df = df[year==2019|year==2020,]
 table(df$year)
 
 #3.2 show the table of the distribution of two years samples
-table1(~town|factor(year),data=df)
+table1(~county|factor(year),data=df)
+
+head(df)
+```
+```{r}
+# # ggplot2
+# distribute_df = df
+# distribute_df$year = as.String(distribute_df$year)
+# 
+# library(ggplot2)
+# 
+# ggplot(data = distribute_df)+
+#   geom_bar(aes(x=distribute_df$county, fill=distribute_df$year),  color='white')+ # add in the bars 
+#   coord_flip()+ # switch orientation of the axes to easier reading of the labels 
+#   theme_minimal()+ # basic formatting 
+#   xlab('Boroughs')+ # change the x axis label
+#   ylab('Frequency')+ # change the y axis label
+#   guides(fill=guide_legend(title='Year'))+ # change legend title 
+#   theme(text = element_text(family='Times New Roman')) # change the font 
 
 ```
+
 
 ## 4. Visualisation and comparison of the density of London EV charge point between two years
 
@@ -256,6 +275,10 @@ head(Lward.lw$neighbours)
    moran.test(.,Lward.lw)
 ```
  
+```{r}
+names(I_LWard_Global_Density)
+head(I_LWard_Global_Density)
+```
 
 - Conduct the Local Moran test 
 
