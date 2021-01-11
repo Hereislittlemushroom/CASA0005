@@ -1,0 +1,339 @@
+---
+title: "The analysis of spatial patterns of the electric vehicle charge points in London between 2019 and 2020"
+author: "Zeqiang Fang"
+date: "2021/1/08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1.Import packages
+
+If there are errors take place, you can run `install.packages({missing package name})` to install packages.
+
+```{r}
+library(tidyverse)
+library(data.table)
+library(sp)
+library(sf)
+library(table1)
+library(tm)
+library(spatstat)
+library(here)
+library(sp)
+library(rgeos)
+library(maptools)
+library(tmap)
+library(sf)
+library(geojson)
+library(geojsonio)
+library(tmaptools)
+library(RColorBrewer)
+library(spdep) 
+```
+
+## 2. The basic settings
+
+### 2.1 Set the path of your project. 
+
+The path below is mine, you should set your own work path
+```{r}
+setwd("/Users/fangzeqiang/Desktop/SDSV/Final/CASA0005_Final_Assessment/")
+```
+
+
+### 2.2 Import the shape file
+
+What you should keep in mind is that this shape file should be run in the complete ESRI dir
+```{r}
+# London_Borough=st_read("F:/spat/statistical-gis-boundaries-london/ESRI/London_Borough_Excluding_MHW.shp")
+London_Borough = st_read("dataset/statistical-gis-boundaries-london/ESRI/London_Borough_Excluding_MHW.shp")
+
+# plot the map
+plot(st_geometry(London_Borough))
+```
+
+
+### 2.3 import the London national chargepoint register dataset
+
+```{r}
+df = fread("Dataset/London_NCR_GSS_Added.csv")
+```
+
+
+## 3. The distribution of samples
+
+```{r}
+#3.1 select the years
+df$year = year(df$dateCreated)
+table(df$year)
+
+#select 2019 & 2020 
+df = df[year==2019|year==2020,]
+table(df$year)
+
+#3.2 show the table of the distribution of two years samples
+table1(~town|factor(year),data=df)
+
+```
+
+## 4. Visualisation and comparison of the density of London EV charge point between two years
+
+### 4.1 Data cleaning for mapping
+
+- I divided the dataset into ones in two years, and merged these two processed dataset with geometric data.
+- Then we calculate the density for two years.
+- Finally we can visualise and map the density
+   
+```{r}
+#5.1 process the data to divide them by years(2019 & 2020)
+df1<-subset(df,year==2019) #2019年
+df2<-subset(df,year==2020) #2020年
+
+# EV charge points created in 2019
+# sdf1<-merge(London_Borough,df1,by="GSS_CODE")
+sdf1<-merge(London_Borough,df1,by="GSS_CODE",all = TRUE)
+sdf1<-sdf1[,c("GSS_CODE","geometry","longitude","latitude")]
+
+# EV charge points created in 2020
+# sdf2<-merge(London_Borough,df2,by="GSS_CODE")
+sdf2<-merge(London_Borough,df2,by="GSS_CODE",all = TRUE)
+sdf2<-sdf2[,c("GSS_CODE","geometry","longitude","latitude")]
+
+```
+
+  
+ ### 4.2 The density of data in 2019
+ 
+```{r}
+# Data preparation
+nsdf1 = sdf1%>%
+  add_count(GSS_CODE)%>%
+  mutate(area=st_area(.))%>%
+  # Use dplyr::mutate to calculate the density of the charge point for each borough
+  mutate(density=n/area)
+
+# select the following variables---"density","GSS_CODE","n"(the count of GSS_CODE)
+nsdf1 = dplyr::select(nsdf1,density,GSS_CODE, n)
+
+nsdf1 = nsdf1%>%                    
+  group_by(GSS_CODE)%>%         
+  summarise(density =first(density),GSS_CODE=first(GSS_CODE))
+
+# plot the figure2: The distribution of the density of the London charge points in 2019
+tm_shape( nsdf1) +
+  tm_compass( north = 0,
+              type = "4star",
+              text.size = 0.8,
+              size = 2.5,
+              show.labels = 1,
+              cardinal.directions = c("N", "E", "S", "W"),
+              lwd = 1,
+              position = c("left","top"),
+              bg.color = NA,
+              bg.alpha = NA,
+              just = NA,
+              fontsize = 1.5) +
+  tm_polygons("density",
+              style="jenks",
+              palette="RdPu",
+              midpoint=NA,
+              popup.vars=c("GSS_CODE", "density"),
+              title="Density per square kilometre (2019)"
+              )
+```
+![London Borough Names](https://i.pinimg.com/originals/e8/c7/10/e8c71070a42fde7bedaafff87379f251.gif)
+  
+ ### 4.3 The density of data in 2020
+ 
+```{r}
+nsdf2 = sdf2%>%
+  add_count(GSS_CODE)%>%
+  mutate(area=st_area(.))%>%
+  mutate(units::set_units(area,km^2))%>%
+  #then density of the points per ward
+  mutate(density=n/area)
+
+nsdf2 = dplyr::select(nsdf2,density,GSS_CODE, n)
+
+nsdf2 = nsdf2%>%                    
+  group_by(GSS_CODE)%>%         
+  summarise(density =first(density),GSS_CODE=first(GSS_CODE))
+
+tm_shape( nsdf2) +
+  tm_compass( north = 0,
+              type = "4star",
+              text.size = 0.8,
+              size = 2.5,
+              show.labels = 1,
+              cardinal.directions = c("N", "E", "S", "W"),
+              lwd = 1,
+              position = c("left","top"),
+              bg.color = NA,
+              bg.alpha = NA,
+              just = NA,
+              fontsize = 1.5) +
+  tm_polygons("density",
+              style="jenks",
+              palette="PuOr",
+              midpoint=NA,
+              popup.vars=c("GSS_CODE", "density"),
+              title="Density per square kilometre (2020)")
+
+```
+ 
+ 
+  ## 5. Analysing Spatial Autocorrelation with Moran’s I
+  
+Since the sample in 2019 & 2020 is too small to run a good result, I analysis the autocorrelation based on the samples which contain these two yearsl
+  
+###5.1 generate the data for analysis
+```{r}
+sdf = merge(London_Borough,df,by="GSS_CODE",all = TRUE)
+sdf = sdf[,c("GSS_CODE","geometry","longitude","latitude")]
+nsdf = sdf%>%
+  add_count(GSS_CODE)%>%
+  mutate(area=st_area(.))%>%
+  #then density of the points per ward
+  mutate(density=n/area)
+
+nsdf = dplyr::select(nsdf,density,GSS_CODE, n)
+
+nsdf = nsdf%>%                    
+  group_by(GSS_CODE)%>%         
+  summarise(density = first(density), GSS_CODE = first(GSS_CODE))
+```
+
+
+###5.2 First plot the centroids of all boroughs in London
+
+```{r}
+coordsW = nsdf%>%
+   st_centroid()%>%
+   st_geometry()
+ 
+ plot(coordsW,axes=TRUE)
+ 
+```
+
+
+### 5.3 create a neighbours list
+ 
+```{r}
+ LWard_nb <- nsdf%>%poly2nb(.,queen=T)
+```
+ 
+ plot the neighbours list we creat
+ 
+```{r}
+plot(nsdf$geometry)
+plot(LWard_nb, st_geometry(coordsW), col="red", add = T)
+# plot(LWard_nb, st_geometry(coordsW), col="red")
+# plot(nsdf$geometry, add=T)
+ # plot(LWard_nb, st_geometry(coordsW), col="red")
+ # jpeg(file="saving_plot1.jpeg")
+ # dev.off()
+```
+
+ ### 5.3 create a spatial weights object from these weights
+
+```{r}
+Lward.lw = nb2listw(LWard_nb, style="C")
+head(Lward.lw$neighbours)
+```
+ 
+
+ ### 5.4 Calculate the Global Moran'I Index
+ 
+ - Conduct the global Moran index 
+ 
+```{r}
+ I_LWard_Global_Density = nsdf %>%
+   pull(density) %>%
+   as.vector()%>%
+   moran.test(.,Lward.lw)
+```
+ 
+
+- Conduct the Local Moran test 
+
+```{r}
+ I_LWard_Local_Density = nsdf %>%
+   pull(density) %>%
+   as.vector()%>%
+   localmoran(., Lward.lw)%>%
+   as_tibble()
+```
+
+- Merge the moran test result with the geometric dataset
+```{r}
+nsdf<-nsdf%>%
+   mutate(density_I = as.numeric(I_LWard_Local_Density$Ii))%>%
+   mutate(density_Iz =as.numeric(I_LWard_Local_Density$Z.Ii)) 
+```
+
+### 5.5 Visulisation of the distribution of the local Moran result
+
+```{r}
+#set the group and colour
+summary(nsdf$density_Iz)
+breaks1<-seq(-3,1,0.5) # Depends on the max and min value in Moran's I
+MoranColours<- rev(brewer.pal(8, "RdGy"))
+
+# Plot the map
+tm_shape(nsdf) +
+  tm_polygons("density_Iz",
+              style="fixed",
+              breaks=breaks1,
+              palette=MoranColours,
+              midpoint=NA,
+              title="Local Moran's I")
+
+```
+
+
+### The END.
+
+Thanks for watching!
+
+ 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+   
+
