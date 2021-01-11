@@ -1,0 +1,53 @@
+---
+title: "The analysis of NHS"
+subtitle: ""
+author: "Franklin Fang"
+date: "Last updated 24th December 2020"
+output:
+  flexdashboard::flex_dashboard:
+  runtime: flexdashboard  
+  html_document:
+    theme: "journal"  
+---
+
+## Coversheet
+
+  Title: The analysis of EV charging in London, UK
+  CASA0005 Geographic Information Systems and Science
+  The Bartlett Centre for Advanced Spatial Analysis
+  Github repository URL: https://github.com/Hereislittlemushroom/CASA0005_Final_Assessment
+  Online website RPubs: https://zeqiang.fun/
+
+## Instruction
+
+we can actually set up a topic such as ...
+
+## Research Question
+
+is there any relationship between ... and ...
+
+## Literature Review
+
+## Methodology
+
+  ### Data Source
+
+  ### Data Limitation
+
+tip: you can use the APOCA method (authority/purpose/objectivity/currency/accuracy)
+
+## Results
+
+  ### Descriptive statistics
+
+  ### Further analysis
+
+## Discussion
+
+  ### Recommendations
+
+## Conclusion
+
+## References
+
+

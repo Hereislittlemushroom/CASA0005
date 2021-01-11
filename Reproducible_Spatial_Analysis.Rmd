@@ -1,7 +1,7 @@
 ---
-title: "The analysis of spatial patterns of the electric vehicle charge points in London between 2019 and 2020"
+title: "Exploratory spatial analysis: Distribution and density changes of electric vehicle charging point in London between 2019 and 2020"
 author: "Zeqiang Fang"
-date: "2021/1/08"
+date: "2021/01/08"
 output: html_document
 ---
 
@@ -79,23 +79,6 @@ table1(~county|factor(year),data=df)
 
 head(df)
 ```
-```{r}
-# # ggplot2
-# distribute_df = df
-# distribute_df$year = as.String(distribute_df$year)
-# 
-# library(ggplot2)
-# 
-# ggplot(data = distribute_df)+
-#   geom_bar(aes(x=distribute_df$county, fill=distribute_df$year),  color='white')+ # add in the bars 
-#   coord_flip()+ # switch orientation of the axes to easier reading of the labels 
-#   theme_minimal()+ # basic formatting 
-#   xlab('Boroughs')+ # change the x axis label
-#   ylab('Frequency')+ # change the y axis label
-#   guides(fill=guide_legend(title='Year'))+ # change legend title 
-#   theme(text = element_text(family='Times New Roman')) # change the font 
-
-```
 
 
 ## 4. Visualisation and comparison of the density of London EV charge point between two years
@@ -108,8 +91,8 @@ head(df)
    
 ```{r}
 #5.1 process the data to divide them by years(2019 & 2020)
-df1<-subset(df,year==2019) #2019年
-df2<-subset(df,year==2020) #2020年
+df1<-subset(df,year==2019) #2019 year
+df2<-subset(df,year==2020) #2020 year
 
 # EV charge points created in 2019
 # sdf1<-merge(London_Borough,df1,by="GSS_CODE")
@@ -132,7 +115,8 @@ nsdf1 = sdf1%>%
   add_count(GSS_CODE)%>%
   mutate(area=st_area(.))%>%
   # Use dplyr::mutate to calculate the density of the charge point for each borough
-  mutate(density=n/area)
+  mutate(density=n*1000*1000/area)
+  # because the st_area default unit is square metre
 
 # select the following variables---"density","GSS_CODE","n"(the count of GSS_CODE)
 nsdf1 = dplyr::select(nsdf1,density,GSS_CODE, n)
@@ -140,7 +124,7 @@ nsdf1 = dplyr::select(nsdf1,density,GSS_CODE, n)
 nsdf1 = nsdf1%>%                    
   group_by(GSS_CODE)%>%         
   summarise(density =first(density),GSS_CODE=first(GSS_CODE))
-
+tmap_mode("plot")
 # plot the figure2: The distribution of the density of the London charge points in 2019
 tm_shape( nsdf1) +
   tm_compass( north = 0,
@@ -163,7 +147,8 @@ tm_shape( nsdf1) +
               title="Density per square kilometre (2019)"
               )
 ```
-![London Borough Names](https://i.pinimg.com/originals/e8/c7/10/e8c71070a42fde7bedaafff87379f251.gif)
+
+Figure the London boroughs map with their names
   
  ### 4.3 The density of data in 2020
  
@@ -173,7 +158,7 @@ nsdf2 = sdf2%>%
   mutate(area=st_area(.))%>%
   mutate(units::set_units(area,km^2))%>%
   #then density of the points per ward
-  mutate(density=n/area)
+  mutate(density=n*1000*1000/area)
 
 nsdf2 = dplyr::select(nsdf2,density,GSS_CODE, n)
 
@@ -181,6 +166,7 @@ nsdf2 = nsdf2%>%
   group_by(GSS_CODE)%>%         
   summarise(density =first(density),GSS_CODE=first(GSS_CODE))
 
+tmap_mode("plot")
 tm_shape( nsdf2) +
   tm_compass( north = 0,
               type = "4star",
@@ -204,7 +190,7 @@ tm_shape( nsdf2) +
 ```
  
  
-  ## 5. Analysing Spatial Autocorrelation with Moran’s I
+## 5. Analysing Spatial Autocorrelation with Moran’s I
   
 Since the sample in 2019 & 2020 is too small to run a good result, I analysis the autocorrelation based on the samples which contain these two yearsl
   
@@ -216,7 +202,7 @@ nsdf = sdf%>%
   add_count(GSS_CODE)%>%
   mutate(area=st_area(.))%>%
   #then density of the points per ward
-  mutate(density=n/area)
+  mutate(density=n*1000*1000/area)
 
 nsdf = dplyr::select(nsdf,density,GSS_CODE, n)
 
@@ -248,7 +234,7 @@ coordsW = nsdf%>%
  
 ```{r}
 plot(nsdf$geometry)
-plot(LWard_nb, st_geometry(coordsW), col="red", add = T)
+plot(LWard_nb, st_geometry(coordsW), col="blue", add = T)
 # plot(LWard_nb, st_geometry(coordsW), col="red")
 # plot(nsdf$geometry, add=T)
  # plot(LWard_nb, st_geometry(coordsW), col="red")
@@ -297,13 +283,18 @@ nsdf<-nsdf%>%
    mutate(density_Iz =as.numeric(I_LWard_Local_Density$Z.Ii)) 
 ```
 
-### 5.5 Visulisation of the distribution of the local Moran result
+### 5.5 Interactive visulisation of the distribution of the local Moran result
 
 ```{r}
+
+tmap_mode("view")
+
 #set the group and colour
 summary(nsdf$density_Iz)
-breaks1<-seq(-3,1,0.5) # Depends on the max and min value in Moran's I
-MoranColours<- rev(brewer.pal(8, "RdGy"))
+breaks1 = seq(-3,1,0.5) 
+# breaks2 = c(-1000,-2.58,-1.96,-1.65,1.65,1.96,2.58,1000)
+# Depends on the max and min value in Moran's I
+MoranColours = rev(brewer.pal(8, "RdGy"))
 
 # Plot the map
 tm_shape(nsdf) +
@@ -312,12 +303,39 @@ tm_shape(nsdf) +
               breaks=breaks1,
               palette=MoranColours,
               midpoint=NA,
-              title="Local Moran's I")
+              title="Local Moran's I,EV charge points in London")
 
 ```
+### 5.6 GI score
 
+```{r}
+Gi_LWard_Local_Density = nsdf %>%
+  pull(density) %>%
+  as.vector()%>%
+  localG(., Lward.lw)
 
-### The END.
+head(Gi_LWard_Local_Density)
+```
+```{r}
+Gi_nsdf = nsdf %>%
+  mutate(density_G = as.numeric(Gi_LWard_Local_Density))
+```
+
+```{r}
+GIColours = rev(brewer.pal(8, "RdBu"))
+
+#now plot on an interactive map
+tmap_mode("view")
+tm_shape(Gi_nsdf) +
+    tm_polygons("density_G",
+        style="fixed",
+        breaks=breaks1,
+        palette=GIColours,
+        midpoint=NA,
+        title="Gi*, EV charge points in London")
+```
+
+## The END.
 
 Thanks for watching!
 
