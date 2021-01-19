@@ -1,54 +1,37 @@
 ---
-title: "Reproducible Analysis"
-author: "Franklin"
+title: "Data Preprocessing"
+author: "Zeqiang Fang"
 date: "1/5/2021"
 output: pdf_document
 ---
 
-## Read data into R
+## 1. Read data into R
 
-- The NCR is a database of publicly-available chargepoints for electric vehicles in the UK established in 2011(,2021).
+The NCR is a database of publicly-available chargepoints for electric vehicles in the UK established in 2011(,2021). you can access data in this [link](https://www.gov.uk/guidance/find-and-use-data-on-public-electric-vehicle-chargepoints#accessing-data-on-ncv)
 
-  you can access data in this [link](https://www.gov.uk/guidance/find-and-use-data-on-public-electric-vehicle-chargepoints#accessing-data-on-ncv)
-
-  read full data in R (first we utilise Excel to filter by "Great London")
+Now, let's read origional data in R
 ```{r}
-library(tidyverse)
-# London_NCR = read_csv("Dataset/national-charge-point-registry.csv")
-UK_NCR= read.csv("http://chargepoints.dft.gov.uk/api/retrieve/registry/format/csv")
-summary(UK_NCR)
+UK_NCR= read.csv("http://chargepoints.dft.gov.uk/api/retrieve/registry/format/csv") 
+# This may take for a while, which depends on the speed of internet
 
+# you can have a overview of this dataset
+print("The number of rows is: ")
 nrow(UK_NCR)
+print("The number of columns is: ")
 ncol(UK_NCR)
-
+print("70 of all varriables are:")
+UK_NCR %>%
+  names() %>%
+    head(.,n = 70)
 ```
 
-## Data selection
+Tip: If you cannot successfully read this dataset, you can replace the above link with "https://raw.githubusercontent.com/Hereislittlemushroom/CASA0005_Final_Assessment/main/Dataset/national-charge-point-registry.csv"
 
-select the london area in this UK csv file
+## 2. Data Selection
+
+Select the charge points of london area in this UK csv file。
+You can utilise `filter` function from `dplyr` package to choose the charge point data in london boroughs
 ```{r}
-library(dplyr)
-
-# overview of all different elements of county via unique()
-overview_county_temp = London_NCR %>%
-  dplyr::arrange(county)
-overview_county = overview_county_temp$county %>%
-  unique()
-
-# London Borough of Camden
-# London Borough of Ealing 
-# London Borough of Greenwich 
-# London Borough of Hackney                
-# London Borough of Hammersmith and Fulham 
-# London Borough of Hounslow              
-# London Borough of Islington              
-# London Borough of Lambeth                
-# London Borough of Richmond upon Thames   
-# London Borough of Southwark             
-# London Borough Of Southwark             
-# London Borough of Waltham Forest        
-# London Borough of Wandsworth
-
 London_NCR = UK_NCR %>%
   dplyr::filter(  !is.na(county),
                   county == "London" | 
@@ -68,141 +51,84 @@ London_NCR = UK_NCR %>%
                   county == "London Borough of Wandsworth")
 ```
 
-Check if county in London_NCR is London
+Check if all values in `county` are attributed to "London"
 ```{r}
-temp = London_NCR$county %>%
+isLondon = London_NCR$county %>%
   unique()
-temp
+isLondon
 ```
 
-In the next step, we can select the valuable attributes e.g. latitude,longitude!
+In the next step, you can select the valuable attributes e.g. latitude,longitude.
 ```{r}
-# R language start from 1
+# Tip: the index of data frame starts from 1
+# Select the variables by their index
 London_NCR = London_NCR %>%
   select(1,4,5,13,14,15,32,35,36,38,54)
 
-# check the cols' names
+# Check the variables we have chosen and the number of rows & cols
 London_NCR %>%
   names()
-
 London_NCR %>%
   nrow()
 London_NCR %>%
   ncol()
 ```
 
+## 3. Data Cleaning
 
-## Data Cleaning
+Map and visualisation play important roles in spatial analysis. To make a heat map for further research, you need to merge geographic information for each row in charge point dataset in the first place.
 
-- 思考：如果可以把NCR里的数据对应到GSS_CODE，按照assignment/geographic information/里的步骤join data就可以得到地理热点图！
-
-首先找到GSS_Code与Postcode对应表，通过google找到PostcodesioR包，安装并运行PostcodesioR
+To begin with, import "PostcodesioR". This R package offer methods to match
 ```{r}
 install.packages("PostcodesioR")
 library(PostcodesioR)
 ```
 
-### 方法一: 试图取巧(没有成功)
-为了将London-NCR的postcode和伦敦GSS_Code对应起来，以此来实现后期画地理热点图的需要，根据PostcodesioR的文档指南如下操作
-```{r}
-# case1
-library(PostcodesioR)
-pc_list <- list(postcodes = c("PR3 0SG", "M45 6GN", "EX165BL"))
-bulk_lookup_result <- bulk_postcode_lookup(pc_list)
-
-#overview
-str(bulk_lookup_result[1])
-
-library(purrr)
-
-bulk_list <- lapply(bulk_lookup_result, "[[", 2)
-
-# 写一个函数来提取list中的list
-subdate<- function(x){
-x$`admin_district`
-}
-subdate(bulk_list$codes)
-
-bulk_df <-
-  map_dfr(bulk_list,
-          `[`,
-          c("postcode", "longitude", "latitude", subdate("codes")))
-
-```
-事实证明上述方法包含list中嵌套list,于是来尝试mutata_each，对每一行进行函数操作!
-
-### 方法二: 使用apply进行批量操作
+Before applying "for-loop" method to fill values in `GSS_CODE` by identifying `postcode`, you can add a new columns called `GSS_CODE` in London_NCR dataset.
 ```{r}
 London_NCR_GSS_Added = London_NCR %>%
   rowwise() %>%
   mutate(GSS_CODE = postcode) %>%
+  # Tip: it is essential to transform numerical data into one in character
   mutate(GSS_CODE = as.character(GSS_CODE))
-# 注意转化成字符型方便后面loop直接赋值！
 
-London_NCR_temp1 = head(London_NCR_GSS_Added)
+# Pay attention to the for loop in dataframe, it starts from 1
 
-library(PostcodesioR)
-
-postcode2gsscode = function(x){
-  
-}
-
-apply(London_NCR_temp1, MARGIN, postcode2gsscode, ...)
-```
-
-### 方法三: 笨笨方法循环(成功了！)
-
-先使用dplyr中的rowwise方法，写个循环来加上GSS_CODE
-```{r}
-
-London_NCR_GSS_Added = London_NCR %>%
-  rowwise() %>%
-  mutate(GSS_CODE = postcode) %>%
-  mutate(GSS_CODE = as.character(GSS_CODE))
-# 注意转化成字符型方便后面loop直接赋值！
-
-London_NCR_temp = London_NCR_GSS_Added
-
-library(PostcodesioR)
 i = 1
-for (val in London_NCR_temp$postcode) {
-  try({ temp = PostcodesioR::postcode_lookup(val)
+for (val in London_NCR_GSS_Added$postcode) {
+  try({ temp1 = PostcodesioR::postcode_lookup(val)
         if(!is.null(temp)){
-          temp1 = temp$admin_district_code[1]
-          London_NCR_temp$GSS_CODE[i] = temp1
-          # print(i)
+          temp2 = temp1$admin_district_code[1]
+          London_NCR_GSS_Added$GSS_CODE[i] = temp2
         }else{
-          London_NCR_temp$GSS_CODE[i] = ""
-          # print("cannot find ")
-          # print(val)
-          # print(i)
+          London_NCR_GSS_Added$GSS_CODE[i] = ""
         }
         i = i+1 }
       ,silent = TRUE)
 }
-# pay attention to the for loop in dataframe, it start from 1 !!!!
 
-London_NCR_GSS_Added = London_NCR_temp
+# remove the rows whose value of `GSS_CODE` is empty
+# There are limitations in this process because the rows missing `GSS_CODE` cannot be included in the dataset, which can slightly affect the research results 
 
-# remove the value which is empty in GSS_CODE
 London_NCR_GSS_Added$GSS_CODE[London_NCR_GSS_Added$GSS_CODE==""] = NA
 London_NCR_GSS_Added = London_NCR_GSS_Added %>%
   filter(!is.na(GSS_CODE))
 ```
-事实证明可以运行！可以看到在London_NCR_GSS_Added中多了新的一列GSS_CODE新变量，可以用来做csv的表合并！
 
-- Finally, it is of importance to export our prepossessed data into csv file! Now we get the London_NCR_GSS_Added.csv in our "/Dataset" path
+Finally, it is of importance to export our prepossessed data into csv file! Now we get the London_NCR_GSS_Added.csv in our "/Dataset" path. 
+
+Also, you can access this prepocessed dataset in github link:
+  https://raw.githubusercontent.com/Hereislittlemushroom/CASA0005_Final_Assessment/main/Dataset/London_NCR_GSS_Added.csv
+
 ```{r}
-# 把我们珍贵的带有GSS_CODE数据提取到/Dataset文件里
+# export London_NCR_GSS_Added data frame into .CSV format 
 library(here)
-# write_csv(London_NCR_GSS_Added, here::here("Dataset","London_NCR_GSS_Added.csv"), append = F, col_names = T)
 write.csv(London_NCR_GSS_Added, here::here("Dataset","London_NCR_GSS_Added.csv"), row.names = FALSE, col.names = TRUE)
-# "col.names = TRUE" is important to be writen down
+# `col.names = TRUE` is important to be writen down
           
 ```
 
-
-### Heat Map making 
+## Heat Map making 
 
 - there comes a map of London borough in order to draw point in this map after data preparation
 ```{r}
@@ -218,7 +144,6 @@ London_Borough = st_read("/Users/fangzeqiang/Desktop/SDSV/Final/CASA0005_Final_A
 # library(tidyverse)
 mycsv = London_NCR_GSS_Added
 ```
-
 
 - In order to make heat mapping, count the frequency of GSS_CODE
 ```{r}
@@ -296,14 +221,7 @@ limitation:
 Accuracy: divid frequency by county may not be the most effcient way to delivery our idea. Maybe the contiunous heat map based on 4324 project will be a good solution.
 
 
-### Data preprocessing
-
-### Analysis
-
-- weighted 
-- 
-
-### Backup
+## Backup
 
 Let's have a try to manipulate data with R
 ```{r}
